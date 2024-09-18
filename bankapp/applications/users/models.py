@@ -2,7 +2,13 @@ from django.db import models
 #
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 #
-from .manager import UserManager
+from .managers import UserManager
+#
+from .functions import create_cod
+#
+from django.db.models.signals import post_save
+#
+from django.dispatch import receiver
 # Create your models here.
 
 
@@ -39,3 +45,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_full_name(self):
         return self.full_name
+    
+
+#cuando se crea un usurio automaticamente se crea el codigo de registro
+@receiver(post_save, sender=User)
+def set_activation_code(sender, instance, created, **kwargs):
+    if created:
+        instance.activation_code = create_cod()
+        instance.save()
