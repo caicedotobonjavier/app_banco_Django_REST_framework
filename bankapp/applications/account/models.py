@@ -52,4 +52,4 @@ class TypeAccount(TimeStampedModel):
     
 
     def __str__(self):
-        return str(self.account) + ' - ' + str(self.account_type)
+        return self.get_account_type_display()
