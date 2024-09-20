@@ -6,7 +6,7 @@ from .models import User
 #
 from rest_framework.authtoken.models import Token
 #
-from .serializers import UserSerializer, LoginUserSerializer, UpdateUserSerializer
+from .serializers import UserSerializer, LoginUserSerializer, UpdateUserSerializer, ActivateUserSeralizer, VerifyLoginSerializer
 #
 from rest_framework.views import APIView
 #
@@ -18,9 +18,15 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 #
 from rest_framework import status
 #
-from .functions import create_cod
+from .functions import create_cod, send_mail_register
 #
 from django.contrib.auth import authenticate
+#
+import pyotp
+#
+from datetime import datetime, timezone
+#
+from django.contrib.auth.hashers import check_password, make_password
 # Create your views here.
 
 
@@ -61,10 +67,10 @@ class AddUserVIew(APIView):
                 password,
                 date_birth = date_birth,
                 phone = phone,
-                address = address                
+                address = address       
             )
 
-            user = {
+            user_created = {
                 "email" : user.email,
                 "full_name" : user.full_name,
                 "date_birth" : user.date_birth,
@@ -72,12 +78,43 @@ class AddUserVIew(APIView):
                 "address" : user.address
             }
 
+            url= f'http://127.0.0.1:8000/user/api/v1/user-activate/{user.user_id}/'
+
+            send_mail_register(user.full_name, user.email, user.activation_code, url)
+
+
             return Response(
                 {
                     'status' : status.HTTP_201_CREATED,
-                    'usuario_registrado' : user
+                    'usuario_registrado' : user_created,
+                    'url_activacion' : url,
+                    'codigo_activacion' : user.activation_code
                 }
             )
+
+
+# Esta clase define una vista en una API del marco REST de Django para activar un usuario configurando su
+# atributo `is_active` en Verdadero.
+class ActivateUserView(APIView):    
+    serializer_class = ActivateUserSeralizer
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data, context={"pk" : self.kwargs['pk']})
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.get(user_id=self.kwargs['pk'])
+        user.is_active = True
+        user.is_staff = True
+        user.save()
+
+        return Response(
+            {
+                'status' : status.HTTP_200_OK,
+                'mensaje' : f'Usuario {user.full_name} activado correctamente',
+                'url_login' : 'http://127.0.0.1:8000/user/api/v1/login-user'
+            }            
+        )
 
 
 
@@ -96,21 +133,20 @@ class LoginUserView(APIView):
         user = authenticate(email=email, password=password)
 
         if user:
-            token, created = Token.objects.get_or_create(user=user)
-            
-            user = {
-                "email" : user.email,
-                "full_name" : user.full_name,
-                "token" : token.key
-            }
+            otp_auth = pyotp.TOTP(user.otp_base32).now()
+            print(otp_auth)
+            user.login_otp = make_password(otp_auth)
+            user.created_at = datetime.now(timezone.utc)
+            user.user_login_otp = False
+            user.save(update_fields=['login_otp', 'created_at', 'user_login_otp'])
 
             return Response(
                 {
                     "status" : status.HTTP_200_OK,
-                    "usuario_logueado" : user
+                    "mensaje" : "Credenciales correctas, proceda a la verificacion 2factor",
+                    "url_verificacion" : f'http://127.0.0.1:8000/user/api/v1/user-verify/{user.user_id}/'
                 }
-            )
-        
+            )        
         else:
             return Response(
                 {
@@ -118,6 +154,38 @@ class LoginUserView(APIView):
                     "error" : "Usuario o contraseña incorrectos"
                 }
             ) 
+
+
+
+# Esta clase es una vista de la API de Django para verificar el inicio de sesión del usuario con OTP y generar un token para
+# la autenticación.
+class VerifyLoginView(APIView):
+    serializer_class = VerifyLoginSerializer
+    
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data, context={'pk' : self.kwargs['pk']})
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.get(user_id=self.kwargs['pk'])
+        user.user_login_otp = True
+        user.save(update_fields=['user_login_otp'])
+
+        token, created = Token.objects.get_or_create(user=user)
+
+        user = {
+                "email" : user.email,
+                "full_name" : user.full_name,
+                "token" : token.key
+            }
+
+        return Response(
+            {
+                'status' : status.HTTP_200_OK,
+                'mensaje' : 'Usuario verificado correctamente',
+                'access' : 'OK',
+                'user' : user
+            }
+        )
 
 
 
@@ -186,3 +254,5 @@ class LogoutUserView(APIView):
                 "message" : f"Se ha cerrado la sesion correctamente del usuario {user}"
             }
         )
+
+

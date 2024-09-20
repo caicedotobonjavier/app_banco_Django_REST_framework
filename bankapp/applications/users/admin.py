@@ -5,11 +5,13 @@ from .models import User
 
 class UserAdmin(admin.ModelAdmin):
     list_display = (
+        'user_id',
         'email',
         'full_name',
-        'date_birth',
-        'phone',
-        'address',
+        'activation_code',
+        'otp_base32',
+        'login_otp',
+        'user_login_otp',
         'is_active',
         'is_staff',
         'is_superuser',

@@ -1,18 +1,24 @@
 from django.db import models
 #
+import uuid
+#
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 #
 from .managers import UserManager
 #
 from .functions import create_cod
 #
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save 
 #
 from django.dispatch import receiver
+#
+import pyotp
 # Create your models here.
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    #
     email = models.EmailField('Email', max_length=254, unique=True)
     full_name = models.CharField('Nombre Completo', max_length=150)
     date_birth = models.DateField('Fecha nacimiento', null=True, blank=True)
@@ -47,9 +53,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.full_name
     
 
-#cuando se crea un usurio automaticamente se crea el codigo de registro
+#cuando se crea un usuario automaticamente se crea el codigo de registro
 @receiver(post_save, sender=User)
 def set_activation_code(sender, instance, created, **kwargs):
     if created:
         instance.activation_code = create_cod()
+        instance.otp_base32 = pyotp.random_base32()
         instance.save()

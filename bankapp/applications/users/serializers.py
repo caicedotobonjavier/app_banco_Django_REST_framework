@@ -1,6 +1,8 @@
 from rest_framework import serializers
 #
 from .models import User
+#
+from django.contrib.auth.hashers import check_password
 
 
 class UserSerializer(serializers.Serializer):
@@ -13,9 +15,48 @@ class UserSerializer(serializers.Serializer):
 
 
 
+class ActivateUserSeralizer(serializers.Serializer):
+    code = serializers.CharField(max_length=6, required=True)
+
+    def validate(self, data):
+        user = self.context.get('pk')
+        code = data['code']
+        usuario = User.objects.get(user_id=user)
+
+        print(code)
+        print(usuario)
+        print(usuario.activation_code)
+        
+
+        if usuario.activation_code != code:
+            raise serializers.ValidationError("El codigo de activacion no es valido")
+        
+        return data
+
+
 class LoginUserSerializer(serializers.Serializer):
     email = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
+
+
+
+class VerifyLoginSerializer(serializers.Serializer):
+    code_verify = serializers.CharField(max_length=6 ,required=True)
+
+    def validate(self, data):
+        id = self.context.get('pk')
+        code = data['code_verify']
+        
+        user = User.objects.get(user_id=id)
+
+        if check_password(code, user.login_otp) and user.user_login_otp==True:
+            raise serializers.ValidationError("Este codigo esta vencido, debe iniciar sesion de nuevo para obtener nuevo codigo")
+        
+        if not check_password(code, user.login_otp):
+            raise serializers.ValidationError("El codigo de verificacion no es valido")
+
+        return data
+
 
 
 class UpdateUserSerializer(serializers.Serializer):
