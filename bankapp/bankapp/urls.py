@@ -23,5 +23,5 @@ urlpatterns = [
     re_path('account/api/v1/', include('applications.account.urls')),
     re_path('card/api/v1/', include('applications.card.urls')),
     re_path('operation/api/v1/', include('applications.operation.urls')),
-    re_path('operation/api/v1/', include('applications.transaction.urls')),
+    re_path('transaction/api/v1/', include('applications.transaction.urls')),
 ]

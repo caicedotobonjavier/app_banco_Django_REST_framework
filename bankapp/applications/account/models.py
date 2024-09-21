@@ -18,7 +18,7 @@ class Account(TimeStampedModel):
         ordering = ['-created']
 
     def __str__(self):
-        return self.account_number
+        return self.user_id.full_name
 
 
 

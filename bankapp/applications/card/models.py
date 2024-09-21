@@ -25,4 +25,4 @@ class Card(TimeStampedModel):
     
 
     def __str__(self):
-        return f'{self.card_id} - {self.user}'
+        return str(self.account.account_number)
