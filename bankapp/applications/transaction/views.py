@@ -8,7 +8,7 @@ from applications.operation.models import Operation
 #
 from applications.transaction.models import Transaction
 #
-from applications.account.models import Account
+from applications.account.models import Account, TypeAccount
 #
 from applications.card.models import Card 
 #
@@ -82,4 +82,58 @@ class TransactionView(APIView):
                     'message' : 'No se pudo realizar la operacion'
                 }
             )
+
+
+class SearchBalanceView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        usuario = self.request.user
+        user = User.objects.get(email=usuario)
+        cuenta = Account.objects.get(user_id=usuario.user_id)
+        tarjeta = Card.objects.get(user=usuario)
+        tipo_cuenta = TypeAccount.objects.get(account=cuenta)
+        
+        return Response(
+            {
+                'status' : status.HTTP_200_OK,
+                'user' : usuario.full_name,
+                'account_number' : cuenta.account_number,
+                'type_account' : str(tipo_cuenta),
+                'balance' : tarjeta.balance
+            }
+        )
+
+
+
+class OperationsUserView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        id = self.request.user
+        transactions = Transaction.objects.filter(
+            user=id
+        )
+        numero = 1
+        operaciones = {}
+        for t in transactions:
+            operacion = {}
+            operacion['date'] = t.transaction_date.date()
+            operacion['operation'] = str(t.operation)
+            operacion['destination_account'] = t.destination_account
+            operacion['amount'] = t.transaction_amount
+            operaciones[numero] = operacion
+            numero += 1
+        print(operaciones)
+
+
+
+        return Response(
+            {
+                'status' : status.HTTP_200_OK,
+                'operation' : operaciones
+            }
+        )
     
