@@ -8,4 +8,6 @@ urlpatterns = [
     path('transaction', views.TransactionView.as_view(), name='transaction'),
     path('search-balance', views.SearchBalanceView.as_view(), name='search'),
     path('search-operations', views.OperationsUserView.as_view(), name='search_operations'),
+    path('transaction-dates', views.TransactionByDate.as_view(), name='transaction_dates'),
+    path('deposit-Withdraw-account', views.DepositWithdrawAccountView.as_view(), name='deposit'),
 ]

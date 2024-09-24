@@ -16,4 +16,8 @@ class TransactionAdmin(admin.ModelAdmin):
         'transaction_amount',
     )
 
+    list_filter = (
+        'transaction_date',
+    )
+
 admin.site.register(Transaction, TransactionAdmin)

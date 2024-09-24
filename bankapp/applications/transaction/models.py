@@ -11,6 +11,8 @@ from applications.account.models import Account
 from applications.users.models import User
 #
 from applications.operation.models import Operation
+#
+from .managers import TransactionManager
 # Create your models here.
 
 
@@ -23,6 +25,8 @@ class Transaction(TimeStampedModel):
     transaction_date = models.DateTimeField('Fecha Transacion')
     destination_account = models.CharField('Cuenta Destino', max_length=100)
     transaction_amount = models.IntegerField('Monto de Transaccion')
+
+    objects = TransactionManager()
 
 
     class Meta:
