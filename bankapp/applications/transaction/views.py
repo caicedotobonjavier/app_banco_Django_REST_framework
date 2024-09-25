@@ -230,8 +230,19 @@ class DepositWithdrawAccountView(APIView):
             transaction.card.balance += serializer.validated_data['transaction_amount']
             transaction.card.save()
 
+            return Response(
+            {
+                'status' : status.HTTP_202_ACCEPTED,
+                'type_operation' : f'{transaction.operation}',
+                'current_balance' : balance_account,
+                'amount' : transaction.transaction_amount,
+                'account' : transaction.account.account_number,
+                'balance' : transaction.card.balance
+            }
+        )
 
-        if operation.id == 2:
+
+        elif operation.id == 2 and card_user.balance >= serializer.validated_data['transaction_amount']:
             transaction = Transaction.objects.create(
                 card = card_user,
                 account = account_user,
@@ -245,8 +256,7 @@ class DepositWithdrawAccountView(APIView):
             transaction.card.balance -= serializer.validated_data['transaction_amount']
             transaction.card.save()
 
-
-        return Response(
+            return Response(
             {
                 'status' : status.HTTP_202_ACCEPTED,
                 'type_operation' : f'{transaction.operation}',
@@ -256,6 +266,14 @@ class DepositWithdrawAccountView(APIView):
                 'balance' : transaction.card.balance
             }
         )
+
+        else:
+            return Response(
+                {
+                    'status' : status.HTTP_400_BAD_REQUEST,
+                    'message' : 'No se pudo realizar la operacion, no tiene fondos suficientes'
+                }
+            )
 
 
 
@@ -291,11 +309,40 @@ class VirtualPayView(APIView):
         card_destination.save()
 
 
+        transaction.card.balance -= transaction.transaction_amount
+        transaction.card.save()
+
+
         return Response(
             {
                 'status' : status.HTTP_200_OK,
                 'message' : 'Pago virtual realizado',
                 'account' : transaction.destination_account,
                 'amount' : transaction.transaction_amount
+            }
+        )
+
+
+
+class DetailTransactionView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+
+    def get(self, request, *args, **kwargs):
+        user = self.request.user
+
+        details = Transaction.objects.details_transactions(user)
+        actual_balance = Card.objects.get(user=user).balance
+
+        return Response(
+            {
+                'status' : status.HTTP_200_OK,
+                'actual_balance' : actual_balance,
+                'message' : 'Details sum one by one transaction',
+                'sum_all_transferencias' : details['sum_transferencias'],
+                'sum_all_retiros' : details['sum_retiros'],
+                'sum_all_consignaciones' : details['sum_consignaciones'],
+                'sum_all_pagos_virtual' : details['sum_pagosvirtuales']
             }
         )

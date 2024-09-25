@@ -11,4 +11,5 @@ urlpatterns = [
     path('transaction-dates', views.TransactionByDate.as_view(), name='transaction_dates'),
     path('deposit-Withdraw-account', views.DepositWithdrawAccountView.as_view(), name='deposit'),
     path('virtual-pay', views.VirtualPayView.as_view(), name='virtual_pay'),
+    path('detail-transactions', views.DetailTransactionView.as_view(), name='detail'),
 ]
