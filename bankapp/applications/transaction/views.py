@@ -256,3 +256,46 @@ class DepositWithdrawAccountView(APIView):
                 'balance' : transaction.card.balance
             }
         )
+
+
+
+# Esta clase Python define una vista para procesar pagos virtuales utilizando el marco REST de Django.
+class VirtualPayView(APIView):
+    serializer_class = TransactionSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = self.request.user
+        card = Card.objects.get(user=user)
+        account = Account.objects.get(user_id=user)
+        operation = Operation.objects.get(id=serializer.validated_data['operation'])
+        
+        transaction = Transaction.objects.create(
+            card = card,
+            account = account,
+            user = user,
+            operation = operation,
+            transaction_date = datetime.datetime.now(),
+            destination_account = serializer.validated_data['destination_account'],
+            transaction_amount = serializer.validated_data['transaction_amount']
+        )
+
+        account_desstiantion = Account.objects.get(account_number=transaction.destination_account)
+        card_destination = Card.objects.get(account=account_desstiantion)
+        card_destination.balance += transaction.transaction_amount
+        card_destination.save()
+
+
+        return Response(
+            {
+                'status' : status.HTTP_200_OK,
+                'message' : 'Pago virtual realizado',
+                'account' : transaction.destination_account,
+                'amount' : transaction.transaction_amount
+            }
+        )
