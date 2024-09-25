@@ -271,7 +271,9 @@ class DepositWithdrawAccountView(APIView):
             return Response(
                 {
                     'status' : status.HTTP_400_BAD_REQUEST,
-                    'message' : 'No se pudo realizar la operacion, no tiene fondos suficientes'
+                    'message' : 'No se pudo realizar la operacion, no tiene fondos suficientes',
+                    'saldo_solicitado_retiro' : serializer.validated_data['transaction_amount'],                    
+                    'saldo actual' : card_user.balance,
                 }
             )
 
